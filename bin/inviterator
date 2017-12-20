@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+
+require 'slack-ruby-client'
+
+Slack.configure do |config|
+  config.token = ENV['SLACK_API_TOKEN']
+  raise 'need to provide a slack token in SLACK_API_TOKEN' unless config.token
+end
+
+raise 'need to specify a channel to invite everyone to' if ARGV.length < 1
+
+client = Slack::Web::Client.new
+channel = client.channels_list.channels.find do |c|
+  c.name == ARGV[0]
+end
+
+raise "couldn't find a channel called #{ARGV[0]}" unless channel
+
+print "inviting everyone to ##{channel.name}, are you sure? (yes or no) "
+exit unless $stdin.gets.chomp == 'yes'
+
+puts "let the games begin!"
+puts
+
+# channels.invite works with up to 30 users at a time
+users_to_invite = client.users_list.members.select do |user|
+  !user.deleted
+end
+users_to_invite.each_slice(30) do |users|
+  puts "inviting #{users.map(&:name).join(', ')}"
+  begin
+    sleep 2
+    client.post('channels.invite', channel: channel.id, users: users.map(&:id).join(','))
+  rescue Slack::Web::Api::Errors::SlackError => e
+    # Ignore errors caused by users we tried to invite already being members.
+    # Note that Slack will still invite all the others to the channel
+    unless e.response.body.errors && e.response.body.errors.all? { |error| error.error == 'already_in_channel' }
+      puts "Oh no! Looks like something went wrong. The response from Slack's API was: #{e.response.inspect}"
+      exit
+    end
+  end
+end
+
+puts
+puts "done! #{users_to_invite.length} users were invited."
