@@ -22,9 +22,11 @@ exit unless $stdin.gets.chomp == 'yes'
 puts "let the games begin!"
 puts
 
+my_user_id = client.auth_test.user_id
+
 # channels.invite works with up to 30 users at a time
 users_to_invite = client.users_list.members.select do |user|
-  !user.deleted
+  !user.deleted && user.id != my_user_id
 end
 users_to_invite.each_slice(30) do |users|
   puts "inviting #{users.map(&:name).join(', ')}"
