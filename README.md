@@ -3,6 +3,7 @@ script to invite everyone on a slack team to a particular channel.
 
 ## Usage
 ```
+git clone git@github.com:makesaltlake/inviterator.git && cd inviterator
 bundle install
 SLACK_API_TOKEN="xoxp-..." bundle exec bin/inviterator some_channel
 ```
