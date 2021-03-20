@@ -10,7 +10,14 @@ end
 raise 'need to specify a channel to invite everyone to' if ARGV.length < 1
 
 client = Slack::Web::Client.new
-channel = client.channels_list.channels.find do |c|
+
+all_channels = []
+client.conversations_list do |response|
+  all_channels << response.channels
+end
+all_channels.flatten!
+
+channel = all_channels.find do |c|
   c.name == ARGV[0]
 end
 
@@ -32,7 +39,7 @@ users_to_invite.each_slice(30) do |users|
   puts "inviting #{users.map(&:name).join(', ')}"
   begin
     sleep 2
-    client.post('channels.invite', channel: channel.id, users: users.map(&:id).join(','))
+    client.post('conversations.invite', channel: channel.id, users: users.map(&:id).join(','))
   rescue Slack::Web::Api::Errors::SlackError => e
     # Ignore errors caused by users we tried to invite already being members.
     # Note that Slack will still invite all the others to the channel
